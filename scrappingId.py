@@ -1,16 +1,68 @@
 import time
+import re
 from selenium import webdriver
 from bs4 import BeautifulSoup
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-def scrappingCity(cityname,driver,restaurants,idset,duplicatedlist):
-    #검색창에 행정동 입력하는 url
-    url = 'https://www.diningcode.com/list.dc?query='+cityname
+def scrappingCity(cityname, driver, restaurants, duplicatedlist):
+    #하나의 행정동에 대한 모든 음식점 목록(최대100개)이 로딩된 html 소스 string 형태로 반환
+    html = pageLoading(cityname, driver)
+    #로딩된 html소스를 넘겨서 식당 id 및 이름 파싱해서 저장
+    scrappingId(html, restaurants, duplicatedlist)
+    #로딩된 html소스를 넘겨서 식당 위치 저장
+    scrappingLocation(html, restaurants, duplicatedlist)
+
+'''
+위치 정보 파싱 함수, 식당 id 기반으로 lat,lng 값 저장
+'''
+def scrappingLocation(html, restaurants, duplicatedlist):
+    soup = BeautifulSoup(html, 'html.parser')
+    content = soup.find_all(class_='Marker')
+    for restaurantinfo in content:
+        restaurantfullid = restaurantinfo['id']
+        restaurantid = restaurantfullid[6:]
+        lat = restaurantinfo['data-lat']
+        lng = restaurantinfo['data-lng']
+        searchresult = restaurants.get(restaurantid, 'NO_KEY')
+        if searchresult != 'NO_KEY':
+            restaurants[restaurantid]['lat'] = lat
+            restaurants[restaurantid]['lng'] = lng
+
+
+'''
+식당 id 파싱 함수, 식당 id 기반으로 식당id&식당이름 저장
+'''
+def scrappingId(html, restaurants, duplicatedlist):
+    soup = BeautifulSoup(html, 'html.parser')
+    content = soup.find_all(class_='PoiBlockContainer')
+    for restaurantinfo in content:
+        #가게 id 들어있는 텍스트가 'block'+'가게id'형식이라서 subString으로 'block'부분을 잘라주어야 함
+        restaurantfullid = restaurantinfo.select_one('.PoiBlock')['id']
+        restaurantid = restaurantfullid[5:]
+        restaurantfullname = restaurantinfo.select_one('.InfoHeader > h2').string
+        regex = re.compile('[0-9]{1,4}. ')
+        regexres = regex.search(restaurantfullname)
+        restaurantname = restaurantfullname[regexres.end():]
+
+        #식당 정보를 저장하고 있는 dictionary에서
+        searchresult = restaurants.get(restaurantid, 'NO_KEY')
+        if searchresult == 'NO_KEY':
+            restaurants[restaurantid] = {'id': restaurantid, 'name': restaurantname}
+        else:
+            duplicatedlist[restaurantid] = {'id': restaurantid, 'name': restaurantname}
+
+
+'''
+셀레니움사용해서 음식점 목록 최대 개수까지 스크롤 내려서 화면 로딩 후 html페이지 소스 반환
+'''
+def pageLoading(cityname, driver):
+    # 검색창에 행정동 입력하는 url
+    url = 'https://www.diningcode.com/list.dc?query=' + cityname
     driver.get(url)
 
-    #가게 리스트 DOM나올 때 까지 대기
+    # 가게 리스트 DOM나올 때 까지 대기
     try:
         element = WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.CLASS_NAME, "PoiBlockContainer"))
@@ -18,7 +70,7 @@ def scrappingCity(cityname,driver,restaurants,idset,duplicatedlist):
     finally:
         pass
 
-    #beforeidx,nowidx 기준으로 스크롤 여부 결정 (beforeidx==nowidx 일 때에는 더 스크롤 할 가게들이 없다는 의미)
+    # beforeidx,nowidx 기준으로 스크롤 여부 결정 (beforeidx==nowidx 일 때에는 더 스크롤 할 가게들이 없다는 의미)
     beforeidx = 0
     nowidx = 0
     while True:
@@ -26,29 +78,44 @@ def scrappingCity(cityname,driver,restaurants,idset,duplicatedlist):
         nowidx = len(restaurantblocks)
         if nowidx == beforeidx:
             break
-        #가게 리스트 맨 밑까지 스크롤 내리기
+        # 가게 리스트 맨 밑까지 스크롤 내리기
         driver.execute_script("arguments[0].scrollIntoView(true);", restaurantblocks[len(restaurantblocks) - 1])
         time.sleep(3)
         beforeidx = nowidx
 
-    #BeautifulSoup으로 가게 정보 파싱
+    # BeautifulSoup으로 가게 정보 파싱(식당 id값, 식당 이름)
     html = driver.page_source
-    soup = BeautifulSoup(html, 'html.parser')
-    content = soup.find_all(class_='PoiBlockContainer')
-    for restaurantinfo in content:
-        #가게 id 들어있는 텍스트가 'block'+'가게id'형식이라서 subString으로 'block'부분을 잘라주어야 함
-        restaurantfullid = restaurantinfo.select_one('.PoiBlock')['id']
-        restaurantid = restaurantfullid[5:]
-        restaurantname = restaurantinfo.select_one('.InfoHeader > h2').string
+    return html
 
-        #set삽입 후 길이 변경 여부로 중복 여부 확인
-        beforesetlen = len(idset)
-        idset.add(restaurantid)
-        aftersetlen = len(idset)
-        if aftersetlen != beforesetlen:
-            restaurants.append({'id': restaurantid, 'name': restaurantname})
-        else:
-            duplicatedlist.append({'id': restaurantid, 'name': restaurantname})
+
+'''
+음식점 정보 저장 함수, 현재는 텍스트 저장이지만 추후에 DB혹은 EXCEL로 변경할 예정
+'''
+def savedatas(restaurants, duplicatedlist):
+    # 텍스트 파일 형태로 저장
+    f = open("scrap.txt", 'w')
+    for id in restaurants:
+        f.write('id : ')
+        f.write(restaurants[id]['id'])
+        f.write(', name : ')
+        f.write(restaurants[id]['name'])
+        f.write(', location : {')
+        f.write(restaurants[id]['lat'])
+        f.write(', ')
+        f.write(restaurants[id]['lng'])
+        f.write('}')
+        f.write('\n')
+    f.close()
+    f = open("duplicated.txt", 'w')
+    for id in duplicatedlist:
+        f.write('id ')
+        f.write(duplicatedlist[id]['id'])
+        f.write(' name ')
+        f.write(duplicatedlist[id]['name'])
+        f.write('\n')
+    f.close()
+
+
 
 def diningcodeScrapping():
     driver = webdriver.Chrome('chromedriver')
@@ -87,40 +154,37 @@ def diningcodeScrapping():
               ,'회현동','명동','필동','장충동','광희동','을지로동','신당동','다산동','약수동','청구동','신당5동','동화동'
               ,'황학동','중림동',
               '면목동','상봉동','중화동','묵동','망우동','신내동']
-    #citylist=['신사동','압구정동']
+    #테스트 용 citylist
+    #citylist=['대방동','압구정동']
 
-    #idset에 식당 ID 저장, idset으로 중복 체크 후, restaurats에 dictionary형태로 가게 정보 저장
-    #restaurants내부 dictionary 구조
+    #id값 중복 체크 후, restaurats에 dictionary형태로 가게 정보 저장
+    #restaurants구조
     '''
-    {'id'='가게 id','name'='가게 이름'}
+    {
+        '가게id1' : {
+            'id' : '가게id',
+            'name' : '가게이름',
+            'lat' : 'lat값',
+            'lng' : 'lng값'
+        },
+        '가게id2' : {
+            'id' : '가게id',
+            'name' : '가게이름',
+            'lat' : 'lat값',
+            'lng' : 'lng값'
+        },   .....
+    }
     '''
     #중복된 정보들은 duplicatedlist에 저장
-    restaurants = []
-    duplicatedlist = []
-    idset = set()
-
+    restaurants = {}
+    duplicatedlist = {}
     #행정동 기준으로 순회하면서 스크래핑
     for cityname in citylist:
-        scrappingCity(cityname,driver,restaurants,idset,duplicatedlist)
-
-    #텍스트 파일 형태로 저장
-    f = open("scrap.txt", 'w')
-    for restaurant in restaurants:
-        f.write('id ')
-        f.write(restaurant['id'])
-        f.write(' name ')
-        f.write(restaurant['name'])
-        f.write('\n')
-    f.close()
-    f = open("duplicated.txt",'w')
-    for duplicated in duplicatedlist:
-        f.write('id ')
-        f.write(duplicated['id'])
-        f.write(' name ')
-        f.write(duplicated['name'])
-        f.write('\n')
-    f.close()
+        scrappingCity(cityname, driver, restaurants, duplicatedlist)
+    #데이터 저장
+    savedatas(restaurants, duplicatedlist)
     driver.quit()
+
 
 if __name__ == '__main__':
     diningcodeScrapping()
