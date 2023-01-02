@@ -161,18 +161,18 @@ def diningcodeScrapping():
     #restaurants구조
     '''
     {
-        '가게id1' : {
-            'id' : '가게id',
-            'name' : '가게이름',
-            'lat' : 'lat값',
-            'lng' : 'lng값'
+        "가게1id" : {
+            "id" : "가게id",
+            "name" : "가게이름",
+            "lat" : "lat값",
+            "lng" : "lng값"
         },
-        '가게id2' : {
-            'id' : '가게id',
-            'name' : '가게이름',
-            'lat' : 'lat값',
-            'lng' : 'lng값'
-        },   .....
+        "가게2id" : {
+            "id" : "가게id",
+            "name" : "가게이름",
+            "lat" : "lat값",
+            "lng" : "lng값"
+        }
     }
     '''
     #중복된 정보들은 duplicatedlist에 저장
