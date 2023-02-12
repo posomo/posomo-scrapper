@@ -10,6 +10,8 @@ class RestaurantMenuScript(AbstractScript, metaclass=ABCMeta):
         super().__init__(soup)
 
     def _get_result(self, el: Tag):
+        if len(el.select_one(".Restaurant_MenuPrice")) == 0:
+            return
         name = el.select_one(".Restaurant_Menu").text
         price = int(el.select_one(".Restaurant_MenuPrice").text[:-1].replace(',', ''))
 
