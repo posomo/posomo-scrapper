@@ -29,6 +29,9 @@ class RestaurantTimeScript(AbstractScript, metaclass=ABCMeta):
     def __init__(self, soup: BeautifulSoup):
         super().__init__(soup)
 
+    def __is_24(self, text : str):
+        return text.find("24시간 영업") != -1
+
     def _get_result(self, el: Tag):
         day_strings = el.select_one(".l-txt").text.split(' ')
         day = day_strings[-1]
@@ -38,17 +41,22 @@ class RestaurantTimeScript(AbstractScript, metaclass=ABCMeta):
         if day_strings[0] == '쉬는시간':
             dtype = RestaurantTimeType.BREAK
         days = self._get_days_array(day)
-        time_range = el.select_one(".r-txt").text.split(' - ')
-        timeFrom = time(hour=0, minute=0) if el.select_one(".r-txt").text == "24시간 영업                    " else get_time(time_range[0])
-        timeTo = time(hour=23, minute=59) if el.select_one(".r-txt").text == "24시간 영업                    " else get_time(time_range[1])
+        text = el.select_one(".r-txt").text.replace('\"', '').strip()
+        if el.select_one(".r-txt>span") is not None:
+            text = text.split('(')[0].strip()
+        time_range = text.split(' - ')
+        timeFrom = time(hour=0, minute=0) if self.__is_24(text) else get_time(time_range[0])
+        timeTo = time(hour=23, minute=59) if self.__is_24(text) else get_time(time_range[1])
         return {
             'days': days,
             'dtype': dtype,
-            'timeFrom':timeFrom,
-            'timeTo' : timeTo
+            'timeFrom': timeFrom,
+            'timeTo': timeTo
         }
+
     def get_property(self):
         return 'times'
+
     def _get_days_array(self, day: str):
         days = []
 
@@ -62,6 +70,9 @@ class RestaurantTimeScript(AbstractScript, metaclass=ABCMeta):
         if day.find('토') != -1:
             days.append(Day.SAT)
         if day.find('일') != -1 and day.find('요일') == -1:
+            days.append(Day.SUN)
+        if day.find('주말') != -1:
+            days.append(Day.SAT)
             days.append(Day.SUN)
         return days
 
