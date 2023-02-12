@@ -49,5 +49,4 @@ def get_list(query: str, from_i: int):
 
 
 if __name__ == '__main__':
-    get_restaurant_lists("신림")
-    map(lambda query: get_restaurant_lists(query), city_list)
+    list(map(lambda query: get_restaurant_lists(query), city_list))
