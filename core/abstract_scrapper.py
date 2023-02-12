@@ -7,7 +7,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 
-from abstract_script import AbstractScript
+from core.abstract_script import AbstractScript
 
 
 class AbstractScrapper(ABC):
