@@ -15,8 +15,11 @@ def get_time(time_string: str):
     minute = 0
     if len(string_split) > 2:
         minute = int(string_split[2][:-1])
-    if string_split[0] == '오후' or string_split[0] == '자정':
+    if string_split[0] == '오후':
         hour += 12
+    if string_split[0] == '자정':
+        hour = 23
+        minute = 59
     return time(hour=hour, minute=minute)
 
 
@@ -36,11 +39,13 @@ class RestaurantTimeScript(AbstractScript, metaclass=ABCMeta):
             dtype = RestaurantTimeType.BREAK
         days = self._get_days_array(day)
         time_range = el.select_one(".r-txt").text.split(' - ')
+        timeFrom = time(hour=0, minute=0) if el.select_one(".r-txt").text == "24시간 영업                    " else get_time(time_range[0])
+        timeTo = time(hour=23, minute=59) if el.select_one(".r-txt").text == "24시간 영업                    " else get_time(time_range[1])
         return {
             'days': days,
             'dtype': dtype,
-            'timeFrom': get_time(time_range[0]),
-            'timeTo' : get_time(time_range[0])
+            'timeFrom':timeFrom,
+            'timeTo' : timeTo
         }
     def get_property(self):
         return 'times'

@@ -41,7 +41,7 @@ def scrappingId(html, restaurants, duplicatedlist):
         #가게 id 들어있는 텍스트가 'block'+'가게id'형식이라서 subString으로 'block'부분을 잘라주어야 함
         restaurantfullid = restaurantinfo.select_one('.PoiBlock')['id']
         restaurantid = restaurantfullid[5:]
-        restaurantfullname = restaurantinfo.select_one('.InfoHeader > h2').string
+        restaurantfullname = restaurantinfo.select_one('.InfoHeader > h2').text
         regex = re.compile('[0-9]{1,4}. ')
         regexres = regex.search(restaurantfullname)
         restaurantname = restaurantfullname[regexres.end():]
