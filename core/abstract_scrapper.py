@@ -40,9 +40,10 @@ class AbstractScrapper(ABC):
     def __loading_page(self):
         self._driver.get(self._url)
         try:
-            element = WebDriverWait(self._driver, 10).until(
-                EC.presence_of_element_located((By.CLASS_NAME, self._target_class_for_waiting))
-            )
+            self._driver.implicitly_wait(10)
+            # element = WebDriverWait(self._driver, 10).until(
+            #     EC.presence_of_element_located((By.CLASS_NAME, self._target_class_for_waiting))
+            # )
         finally:
             pass
 
