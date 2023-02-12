@@ -12,7 +12,7 @@ class RestaurantDetailScrapper(AbstractScrapper, metaclass=ABCMeta):
         super().__init__("https://www.diningcode.com/profile.php?rid=" + id, "Restaurant_Menu")
 
     def _get_scripts(self) -> List[AbstractScript]:
-        return []
+        return [RestaurantMenuScript(self._soup), RestaurantTimeScript(self._soup)]
 
 
 if __name__ == '__main__':
