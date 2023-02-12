@@ -3,6 +3,7 @@ import json
 import requests as requests
 
 from city_list import city_list
+from core.driver import DriverClass
 from restuarant_detail.restaurant_detail_scrapper import RestaurantDetailScrapper
 
 __base_url = 'https://im.diningcode.com/API/isearch/'
@@ -44,9 +45,12 @@ def get_restaurant_lists(query: str):
 
 def get_list(query: str, from_i: int):
     head = {"User-Agent": "PostmanRuntime/7.30.0", 'Content-Type': 'application/x-www-form-urlencoded', "Accept": "*/*", "Origin": "https://www.diningcode.com", "Referer": "https://www.diningcode.com"}
-    r = requests.post(__base_url, params={'query': query, 'from': str(from_i), 'size': str(20)}, headers=head).json()
-    return r
+    r = requests.post(__base_url, data={'query': query, 'page': from_i, 'size': 20}, headers=head)
+    print(r.url)
+    return r.json()
 
 
 if __name__ == '__main__':
     list(map(lambda query: get_restaurant_lists(query), city_list))
+    # get_restaurant_lists("신림")
+    DriverClass.instance().get_driver().close()
