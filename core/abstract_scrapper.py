@@ -8,13 +8,14 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 
 from core.abstract_script import AbstractScript
+from core.driver import DriverClass
 
 
 class AbstractScrapper(ABC):
     def __init__(self, url: str, target_class_for_waiting: str):
+        self._driver = DriverClass.instance().get_driver()
         self._target_class_for_waiting = target_class_for_waiting
         self._url = url
-        self._driver = webdriver.Chrome('chromedriver')
         self._soup = self.__get_soup()
         self._scripts = self._get_scripts()
 
@@ -30,9 +31,6 @@ class AbstractScrapper(ABC):
         for script in self._scripts:
             result[script.get_property()] = script.crawl()
         return result
-
-    def __del__(self):
-        self._driver.quit()
 
     def __get_html(self):
         self.__loading_page()

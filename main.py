@@ -3,6 +3,7 @@ import json
 import requests as requests
 
 from city_list import city_list
+from core.driver import DriverClass
 from restuarant_detail.restaurant_detail_scrapper import RestaurantDetailScrapper
 
 __base_url = 'https://im.diningcode.com/API/isearch/'
@@ -50,3 +51,4 @@ def get_list(query: str, from_i: int):
 
 if __name__ == '__main__':
     list(map(lambda query: get_restaurant_lists(query), city_list))
+    DriverClass.get_driver().close()
